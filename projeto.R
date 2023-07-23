@@ -47,13 +47,19 @@ str(dados)
 # ------------------------------------------------------------
 # Separando entre dados de treino e de teste
 # ------------------------------------------------------------
-dados$ID <- 1:nrow(dados)
-train <- dados %>% dplyr::sample_n(100)
-test  <- dplyr::anti_join(dados, train, by = 'ID')
-write.csv(train, "train.csv")
-write.csv(test, "test.csv")
+
+#dados$ID <- 1:nrow(dados)
+#train <- dados %>% dplyr::sample_n(100)
+#test  <- dplyr::anti_join(dados, train, by = 'ID')
+#write.csv(train, "train.csv")
+#write.csv(test, "test.csv")
 
 # ------------------------------------------------------------
+# Ler dados já salvos
+# ------------------------------------------------------------
+train <- read.csv("train.csv")
+test  <- read.csv("test.csv")
+
 # Análise descritiva
 # ------------------------------------------------------------
 summary(dados)
