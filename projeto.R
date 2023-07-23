@@ -26,7 +26,7 @@
 # BIBLIOTECAS
 # ------------------------------------------------------------
 lapply(c('dplyr','lubridate','stats','ggplot2', 'readxl', 'viridis',
-         'hrbrthemes'),require,character.only=TRUE)
+         'hrbrthemes','mdscore','ROCR','pROC'),require,character.only=TRUE)
 setwd("C:/Users/henri/OneDrive/Documentos/GitHub/Dados")
 
 
@@ -37,6 +37,14 @@ setwd("C:/Users/henri/OneDrive/Documentos/GitHub/Dados")
 dados <- read_xlsx("dados_trabalho.xlsx")
 colnames(dados) <- c("ID", "idade", "status", "casa", "setor",
                      "poup", "hrbrthemes")
+train$status <- factor(train$status)
+train$casa   <- factor(train$casa)
+train$setor  <- factor(train$setor)
+train$poup   <- factor(train$poup)
+test$status  <- factor(test$status)
+test$casa    <- factor(test$casa)
+test$setor   <- factor(test$setor)
+test$poup    <- factor(test$poup)
 dados$status <- factor(dados$status)
 dados$casa   <- factor(dados$casa)
 dados$setor  <- factor(dados$setor)
@@ -77,24 +85,160 @@ ggplot(data = train, aes(x = poup, y = idade, fill = poup, alpha = 0.5)) +
 
 # Gráfico de barras das demais variáveis
 par(mfrow = c(2, 2))
-barplot(table(train$poup), names = c("Sem poupança", "Com poupança"), density=c(50,50), col="brown", main="Conta poupança", ylab = "Frequência", ylim = c(0,120))
-barplot(table(train$status), names = c("Superior", "Médio", "Inferior"), density=c(50,50,50), col="blue", main = "Status econômico", ylim = c(0,80))
-barplot(table(train$casa ), names = c("Sim, quitada", "Não"), density=c(50,50), col="gray", main = "Possui casa própria", ylab = "Frequência", ylim = c(0,120))
-barplot(table(train$setor), names = c("Setor B", "Setor A"), density=c(50,50), col="orange", main = "Setor da cidade", ylim = c(0,150))
+barplot(table(dados$poup), names = c("Sem poupança", "Com poupança"), density=c(20,20), col="brown", main="Conta poupança", ylab = "Frequência", ylim = c(0,120))
+barplot(table(dados$status), names = c("Superior", "Médio", "Inferior"), density=c(20,20,20), col="blue", main = "Status econômico", ylim = c(0,80))
+barplot(table(dados$casa ), names = c("Sim, quitada", "Não"), density=c(20,20), col="gray", main = "Possui casa própria", ylab = "Frequência", ylim = c(0,120))
+barplot(table(dados$setor), names = c("Setor B", "Setor A"), density=c(20,20), col="orange", main = "Setor da cidade", ylim = c(0,150))
 
 # Modelo de regressão logística
-fit1 <- glm(poup ~ idade + status + casa + setor,
-            data = train,
+fit1 <- glm(data = train,
+            poup ~ idade + status + casa + setor,
             family = binomial(link = "logit"))
+
 summary(fit1)
+wald.test(fit1, 5)
+
+anova(fit1, test="Chisq")
+
+fit2 <- glm(data = train,
+            poup ~ idade + status + casa,
+            family = binomial(link = "logit"))
+
+summary(fit2)
+wald.test(fit2, 4)
+
 
 table(train$poup, train$status)
 table(train$poup, train$casa)
 table(train$poup, train$setor)
 table(train$poup)
 
-@yanvianna
+# 4 a 4 e 3 a 3
+summary(glm(data = train,
+            poup ~ idade + status + casa + setor,
+            family = binomial(link = "logit")))
+summary(glm(data = train,
+            poup ~ idade + status + casa,
+            family = binomial(link = "logit")))
+summary(glm(data = train,
+            poup ~ idade + status + setor,
+            family = binomial(link = "logit")))
+summary(glm(data = train,
+            poup ~ idade + casa + setor,
+            family = binomial(link = "logit")))
+summary(glm(data = train,
+            poup ~ status + casa + setor,
+            family = binomial(link = "logit")))
+# 2 a 2
+summary(glm(data = train,
+            poup ~ idade + status,
+            family = binomial(link = "logit")))
+summary(glm(data = train,
+            poup ~ idade + casa,
+            family = binomial(link = "logit")))
+summary(glm(data = train,
+            poup ~ idade + setor,
+            family = binomial(link = "logit")))
+summary(glm(data = train,
+            poup ~ status + casa,
+            family = binomial(link = "logit")))
+summary(glm(data = train,
+            poup ~ status + setor,
+            family = binomial(link = "logit")))
+summary(glm(data = train,
+            poup ~ casa + setor,
+            family = binomial(link = "logit")))
+# 1 a 1
+summary(glm(data = train,
+            poup ~ idade,
+            family = binomial(link = "logit")))
+summary(glm(data = train,
+            poup ~ status,
+            family = binomial(link = "logit")))
+summary(glm(data = train,
+            poup ~ casa,
+            family = binomial(link = "logit")))
+summary(glm(data = train,
+            poup ~ setor,
+            family = binomial(link = "logit")))
+
+plot(fit2)
+# -------------------------------------------------------
+# Predição
+# -------------------------------------------------------
+pred <- fit2 %>%
+  predict(test, type="response")
+
+pred
+
+roc(test$poup ~ pred, plot = TRUE, print.auc = TRUE,
+    xlab = "1-Especificidade", ylab = "Sensibilidade")
+
+predicted.classes <- ifelse(pred > 1-0.5459184, 1, 0)
+table(predicted.classes, test$poup)
+mean(predicted.classes == test$poup)
 
 
+prediction <- prediction(pred, test$poup)
+perf <- performance(prediction)
+plot(perf, colorize=TRUE)
+?performance
+# -------------------------------------------------------
+# Proporção de poupança
+# -------------------------------------------------------
+sum(as.numeric(dados$poup))/nrow(dados$poup)
+sum(as.numeric(dados$poup)-1)/nrow(dados)
+dados$poup
 
 
+# -------------------------------------------------------
+# Gráfico envelope
+# -------------------------------------------------------
+fit.model <- fit2
+par(mfrow=c(1,1))
+X <- model.matrix(fit.model)
+n <- nrow(X)
+p <- ncol(X)
+w <- fit.model$weights
+W <- diag(w)
+H <- solve(t(X)%*%W%*%X)
+H <- sqrt(W)%*%X%*%H%*%t(X)%*%sqrt(W)
+h <- diag(H)
+td <- resid(fit.model,type="deviance")/sqrt(1-h)
+e <- matrix(0,n,100)
+#
+for(i in 1:100){
+  dif <- runif(n) - fitted(fit.model)
+  dif[dif >= 0 ] <- 0
+  dif[dif<0] <- 1
+  nresp <- dif
+  fit <- glm(nresp ~ X, family=binomial)
+  w <- fit$weights
+  W <- diag(w)
+  H <- solve(t(X)%*%W%*%X)
+  H <- sqrt(W)%*%X%*%H%*%t(X)%*%sqrt(W)
+  h <- diag(H)
+  e[,i] <- sort(resid(fit,type="deviance")/sqrt(1-h))}
+#
+e1 <- numeric(n)
+e2 <- numeric(n)
+#
+for(i in 1:n){
+  eo <- sort(e[i,])
+  e1[i] <- (eo[2]+eo[3])/2
+  e2[i] <- (eo[97]+eo[98])/2}
+#
+med <- apply(e,1,mean)
+faixa <- range(td,e1,e2)
+par(pty="s")
+qqnorm(td,xlab="Percentil da N(0,1)",
+       ylab="Componente do Desvio", ylim=faixa, pch=16, main="")
+#
+par(new=TRUE)
+#
+qqnorm(e1,axes=F,xlab="",ylab="",type="l",ylim=faixa,lty=1, main="")
+par(new=TRUE)
+qqnorm(e2,axes=F,xlab="",ylab="", type="l",ylim=faixa,lty=1, main="")
+par(new=TRUE)
+qqnorm(med,axes=F,xlab="", ylab="", type="l",ylim=faixa,lty=2, main="")
+#------------------------------------------------------------#
