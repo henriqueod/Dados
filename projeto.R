@@ -47,7 +47,6 @@ str(dados)
 # ------------------------------------------------------------
 # Separando entre dados de treino e de teste
 # ------------------------------------------------------------
-
 #dados$ID <- 1:nrow(dados)
 #train <- dados %>% dplyr::sample_n(100)
 #test  <- dplyr::anti_join(dados, train, by = 'ID')
@@ -75,15 +74,6 @@ ggplot(data = train, aes(x = poup, y = idade, fill = poup, alpha = 0.5)) +
     plot.title = element_text(size=11)) +
   ggtitle("Distribuição das idades x Conta poupança") +
   xlab("") + ylab("Idade")
-
-hist(train$idade)
-
-# Gráfico de barras das demais variáveis
-ggplot(data = train, aes(x = poup)) +
-  geom_bar(position="dodge") +
-  scale_fill_viridis(discrete = T, option = "E") +
-  ggtitle("Studying 4 species..") +
-  facet_wrap(~ poup , status , casa , setor)
 
 # Gráfico de barras das demais variáveis
 par(mfrow = c(2, 2))
