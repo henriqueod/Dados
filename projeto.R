@@ -26,7 +26,8 @@
 # BIBLIOTECAS
 # ------------------------------------------------------------
 lapply(c('dplyr','lubridate','stats','ggplot2', 'readxl', 'viridis',
-         'hrbrthemes','mdscore','ROCR','pROC'),require,character.only=TRUE)
+         'hrbrthemes','mdscore','ROCR','pROC'),'DescTools',
+         require,character.only=TRUE)
 setwd("C:/Users/henri/OneDrive/Documentos/GitHub/Dados")
 
 
@@ -89,6 +90,34 @@ barplot(table(dados$poup), names = c("Sem poupança", "Com poupança"), density=
 barplot(table(dados$status), names = c("Superior", "Médio", "Inferior"), density=c(20,20,20), col="blue", main = "Status econômico", ylim = c(0,80))
 barplot(table(dados$casa ), names = c("Sim, quitada", "Não"), density=c(20,20), col="gray", main = "Possui casa própria", ylab = "Frequência", ylim = c(0,120))
 barplot(table(dados$setor), names = c("Setor B", "Setor A"), density=c(20,20), col="orange", main = "Setor da cidade", ylim = c(0,150))
+
+# Gráfico de Dispersão: Proporção com Poupança x Idade
+dados$idadecat <- NA
+for(i in seq(0, 70, by=10)){
+dados$idadecat[dados$idade>=i & dados$idade<i+10] <- i+5
+}
+dados$idadecat[dados$idade>=70] <- 75
+idade=seq(5, 75, by=10)
+casos <- NA
+proporcao <- NA
+for(i in 1:8){
+casos[i] <- length(dados$poup[dados$idadecat==idade[i]])
+proporcao[i]=sum(dados$poup[dados$idadecat==idade[i]])/length(dados$poup[dados$idadecat==idade[i]])
+}
+tabela <- as.data.frame(cbind(idade,casos,proporcao))
+ggplot(tabela, aes(x=idade, y=proporcao)) + 
+  geom_point(size=3) +
+  labs(x='Idade',y='Proporção com poupança') +
+  theme_minimal() +
+  theme(panel.border=element_blank(),axis.text=element_text(size = 13),
+        axis.title=element_text(size = 14),axis.title.x=element_text(margin=margin(t=15)),
+        axis.title.y=element_text(margin=margin(r=15))) +
+  ylim(.15,1.05)
+
+# Testes de Independencia
+chisq.test(table(dados$casa,dados$poup))
+chisq.test(table(dados$setor,dados$poup))
+MHChisqTest(table(dados$status,dados$poup))
 
 # Modelo de regressão logística
 fit1 <- glm(data = train,
