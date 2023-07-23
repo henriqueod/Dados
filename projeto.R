@@ -118,6 +118,7 @@ ggplot(tabela, aes(x=idade, y=proporcao)) +
 chisq.test(table(dados$casa,dados$poup))
 chisq.test(table(dados$setor,dados$poup))
 MHChisqTest(table(dados$status,dados$poup))
+wilcox.test(dados$idade[dados$poup==1],dados$idade[dados$poup==0])
 
 # Modelo de regressão logística
 fit1 <- glm(data = train,
