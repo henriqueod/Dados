@@ -26,7 +26,7 @@
 # BIBLIOTECAS
 # ------------------------------------------------------------
 lapply(c('dplyr','lubridate','stats','ggplot2', 'readxl', 'viridis',
-         'hrbrthemes','mdscore','ROCR','pROC'),'DescTools',
+         'hrbrthemes','mdscore','ROCR','pROC','DescTools','ResourceSelection'),
          require,character.only=TRUE)
 setwd("C:/Users/henri/OneDrive/Documentos/GitHub/Dados")
 
@@ -105,7 +105,7 @@ casos[i] <- length(dados$poup[dados$idadecat==idade[i]])
 proporcao[i]=sum(dados$poup[dados$idadecat==idade[i]])/length(dados$poup[dados$idadecat==idade[i]])
 }
 tabela <- as.data.frame(cbind(idade,casos,proporcao))
-ggplot(tabela, aes(x=idade, y=proporcao)) + 
+ggplot(tabela, aes(x=idade, y=proporcao)) +
   geom_point(size=3) +
   labs(x='Idade',y='Proporção com poupança') +
   theme_minimal() +
@@ -119,8 +119,16 @@ chisq.test(table(dados$casa,dados$poup))
 chisq.test(table(dados$setor,dados$poup))
 MHChisqTest(table(dados$status,dados$poup))
 wilcox.test(dados$idade[dados$poup==1],dados$idade[dados$poup==0])
+mean(dados$idade[dados$poup==1])
+mean(dados$idade[dados$poup==0])
+sd(dados$idade[dados$poup==1])
+sd(dados$idade[dados$poup==0])
 
+table(dados$setor, dados$poup)
+
+# -------------------------------------------------------
 # Modelo de regressão logística
+# -------------------------------------------------------
 fit1 <- glm(data = train,
             poup ~ idade + status + casa + setor,
             family = binomial(link = "logit"))
@@ -193,18 +201,29 @@ summary(glm(data = train,
             family = binomial(link = "logit")))
 
 plot(fit2)
+
+medidas <- summary(fit2)
+lower <- medidas$coefficients[, 1]+qnorm(0.025)*medidas$coefficients[, 2]
+upper <- medidas$coefficients[, 1]+qnorm(0.975)*medidas$coefficients[, 2]
+lower
+upper
+
+str(fit2)
 # -------------------------------------------------------
 # Predição
 # -------------------------------------------------------
 pred <- fit2 %>%
   predict(test, type="response")
 
-pred
+predicted <- as.numeric(pred > prob)
+xtabs(~ test$poup + predicted)
 
+par(mfrow = c(1, 1))
 roc(test$poup ~ pred, plot = TRUE, print.auc = TRUE,
-    xlab = "1-Especificidade", ylab = "Sensibilidade")
+    xlab = "1-Especificidade", ylab = "Sensibilidade",
+    xlim = c(1,0))
 
-predicted.classes <- ifelse(pred > 1-0.5459184, 1, 0)
+predicted.classes <- ifelse(pred > 0.50, 1, 0)
 table(predicted.classes, test$poup)
 mean(predicted.classes == test$poup)
 
@@ -217,8 +236,14 @@ plot(perf, colorize=TRUE)
 # Proporção de poupança
 # -------------------------------------------------------
 sum(as.numeric(dados$poup))/nrow(dados$poup)
-sum(as.numeric(dados$poup)-1)/nrow(dados)
-dados$poup
+
+prob <- sum(as.numeric(train$poup)-1)/nrow(train)
+
+# -------------------------------------------------------
+# Plot - GLM
+# -------------------------------------------------------
+par(mfrow = c(2, 2))
+plot(fit2)
 
 
 # -------------------------------------------------------
@@ -272,3 +297,9 @@ qqnorm(e2,axes=F,xlab="",ylab="", type="l",ylim=faixa,lty=1, main="")
 par(new=TRUE)
 qqnorm(med,axes=F,xlab="", ylab="", type="l",ylim=faixa,lty=2, main="")
 #------------------------------------------------------------#
+
+# -------------------------------------------------------
+# Hosmer Lameshow
+# -------------------------------------------------------
+hoslem.test(train$poup,fit2$fitted.values,10)
+
